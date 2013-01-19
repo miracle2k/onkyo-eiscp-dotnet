@@ -1,0 +1,1 @@
+For now, see the documentation of the [Python version](https://github.com/miracle2k/onkyo-eiscp).
