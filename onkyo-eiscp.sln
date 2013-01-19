@@ -1,0 +1,32 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Express 2012 for Windows Desktop
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "onkyo-eiscp", "onkyo-eiscp\onkyo-eiscp.csproj", "{C3767D2D-6EBD-4475-9752-5524C6A34FBD}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "generate", "generate\generate.csproj", "{930ED904-A029-4C7B-932D-DCEC6C61224D}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "onkyo", "onkyo\onkyo.csproj", "{A2C38AC8-3C2B-419F-BDD5-AE55C72CFE11}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{C3767D2D-6EBD-4475-9752-5524C6A34FBD}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{C3767D2D-6EBD-4475-9752-5524C6A34FBD}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{C3767D2D-6EBD-4475-9752-5524C6A34FBD}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{C3767D2D-6EBD-4475-9752-5524C6A34FBD}.Release|Any CPU.Build.0 = Release|Any CPU
+		{930ED904-A029-4C7B-932D-DCEC6C61224D}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{930ED904-A029-4C7B-932D-DCEC6C61224D}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{930ED904-A029-4C7B-932D-DCEC6C61224D}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{930ED904-A029-4C7B-932D-DCEC6C61224D}.Release|Any CPU.Build.0 = Release|Any CPU
+		{A2C38AC8-3C2B-419F-BDD5-AE55C72CFE11}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{A2C38AC8-3C2B-419F-BDD5-AE55C72CFE11}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{A2C38AC8-3C2B-419F-BDD5-AE55C72CFE11}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{A2C38AC8-3C2B-419F-BDD5-AE55C72CFE11}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+EndGlobal
