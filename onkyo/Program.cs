@@ -245,7 +245,16 @@ Examples:
                         }
 
                         Console.WriteLine("{0}: {1}", receiver, iscpCommand);
-                        string response = Encoding.ASCII.GetString(receiver.Raw(iscpCommand));
+                        string response;
+                        try
+                        {
+                            response = Encoding.ASCII.GetString(receiver.Raw(iscpCommand));
+                        }
+                        catch (ArgumentException e)
+                        {
+                            Console.WriteLine(e.Message);
+                            return 0;
+                        }
                         if (rawResponse)
                         {
                             Console.WriteLine(response);
