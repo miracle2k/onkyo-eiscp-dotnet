@@ -1,0 +1,14 @@
+{
+  "FileVersion": 2,
+  "Id": "930ed904-a029-4c7b-932d-dcec6c61224d",
+  "Items": [
+    {
+      "Id": "e8f1b2c9-740a-435c-a26a-764cb2144a5c",
+      "Command": "C:\\temp\\onkyo-eiscp-dotnet\\generate\\eiscp-commands.yaml"
+    },
+    {
+      "Id": "f3bbd69f-021b-4b98-ae75-fd336445dd96",
+      "Command": "C:\\temp\\onkyo-eiscp-dotnet\\onkyo-eiscp\\EiscpCommands.cs"
+    }
+  ]
+}
