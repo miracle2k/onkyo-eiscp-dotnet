@@ -430,8 +430,7 @@ namespace Eiscp.Core
     /// 
     /// You may want to look at the <see cref="Receiver"/> class instead, which
     /// uses a background thread.
-    public class Eiscp: IReceiver
-    {
+	public class EiscpClient : IReceiver {
         private Socket commandSocket;
 
         public int Port
@@ -512,18 +511,15 @@ namespace Eiscp.Core
             return foundReceivers;
         }
 
-        public static List<IReceiver> Discover(double timeout = 5)
-        {
-            return Discover(timeout, Eiscp.Create);
+		public static List<IReceiver> Discover(double timeout = 5) {
+			return Discover(timeout, EiscpClient.Create);
         }
 
-        public static Eiscp Create(IPAddress address, int port, string model)
-        {
-            return new Eiscp(address, port, model);
+		public static EiscpClient Create(IPAddress address, int port, string model) {
+			return new EiscpClient(address, port, model);
         }
 
-        public Eiscp(IPAddress host, int port = 60128, string model = null)
-        {
+		public EiscpClient(IPAddress host, int port = 60128, string model = null) {
             Host = host;
             Port = port;
             Model = model;
@@ -531,8 +527,7 @@ namespace Eiscp.Core
             commandSocket = null;
         }
 
-        ~Eiscp()
-        {
+		~EiscpClient() {
             Dispose();
         }
 
@@ -678,7 +673,7 @@ namespace Eiscp.Core
     }
 
     /// <summary>
-    /// Changes the behaviour of <see cref="Eiscp"/> to use a background
+	/// Changes the behaviour of <see cref="EiscpClient"/> to use a background
     /// thread for network operations.
     /// </summary>
     /// 
@@ -698,8 +693,7 @@ namespace Eiscp.Core
     /// </code>
     /// </example>
     /// The argument <c>message</c> is
-    public class Receiver: Eiscp
-    {
+	public class Receiver : EiscpClient {
         private bool stop;
         private BlockingCollection<Tuple<string, EventWaitHandle, List<object>>> queue; 
         private Thread thread;
@@ -721,9 +715,8 @@ namespace Eiscp.Core
             return new Receiver(address, port, model);
         }
 
-        public static new List<IReceiver> Discover(double timeout = 5)
-        {
-            return Eiscp.Discover(timeout, Receiver.Create);
+		public static new List<IReceiver> Discover(double timeout = 5) {
+			return EiscpClient.Discover(timeout, Receiver.Create);
         }
 
         private void EnsureThreadRunning()
@@ -747,7 +740,7 @@ namespace Eiscp.Core
         }
 
         /// <summary>
-        /// Like <see cref="Eiscp.Send"/>, but sends asynchronously via the
+		/// Like <see cref="EiscpClient.Send"/>, but sends asynchronously via the
         /// background thread.
         /// </summary>        
         public override void Send(string iscpMessage)
@@ -766,7 +759,7 @@ namespace Eiscp.Core
         }
 
         /// <summary>
-        /// Like <see cref="Eiscp.Raw"/>.
+		/// Like <see cref="EiscpClient.Raw"/>.
         /// </summary>        
         public override byte[] Raw(string iscpMessage)
         {

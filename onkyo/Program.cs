@@ -93,7 +93,7 @@ Examples:
             // List commands
             if (discover)
             {
-                foreach (var receiver in Eiscp.Core.Eiscp.Discover(timeout: 1))
+                foreach (var receiver in EiscpClient.Discover(timeout: 1))
                 {
                     Console.WriteLine("{0} {1}:{2}", receiver.Model, receiver.Host, receiver.Port);
                 }
@@ -190,11 +190,11 @@ Examples:
                     return 1;
                 }
 
-                receivers.Add(new Eiscp.Core.Eiscp(addresses[0], portNum));
+                receivers.Add(new EiscpClient(addresses[0], portNum));
             }
             else
             {
-                receivers = Eiscp.Core.Eiscp.Discover(timeout: 1);
+                receivers = EiscpClient.Discover(timeout: 1);
 
                 if (!all)
                 {
