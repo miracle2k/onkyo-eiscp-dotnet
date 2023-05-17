@@ -93,7 +93,7 @@ Examples:
             // List commands
             if (discover)
             {
-                foreach (var receiver in Eiscp.Core.Eiscp.Discover(timeout: 1))
+                foreach (var receiver in EiscpClient.Discover(timeout: 1))
                 {
                     Console.WriteLine("{0} {1}:{2}", receiver.Model, receiver.Host, receiver.Port);
                 }
@@ -142,15 +142,15 @@ Examples:
                 }
 
                 // List values
-                object selectedCommand = Utils.Nav(EiscpCommands.CommandMappings, selectedZone, command[1]) ?? command[1];
-                if (Utils.Nav(EiscpCommands.Commands, selectedZone, selectedCommand) == null)
+                var selectedCommand = Utils.Nav<string>(EiscpCommands.CommandMappings, selectedZone, command[1]) ?? command[1];
+                if (Utils.Nav<object>(EiscpCommands.Commands, selectedZone, selectedCommand) == null)
                 {
                     Console.WriteLine("No such command in the selected zone: " + selectedCommand);
                     return 1;
                 }
 
                 Console.WriteLine("Possible values for this command:");
-                IDictionary valuesForCommandDict = (IDictionary)Utils.Nav(EiscpCommands.Commands, selectedZone, selectedCommand, "values");
+                IDictionary valuesForCommandDict = Utils.Nav<IDictionary>(EiscpCommands.Commands, selectedZone, selectedCommand, "values");
                 foreach (IDictionary valueInfo in valuesForCommandDict.Values)
                 {
                     Console.WriteLine("  {0} - {1}", valueInfo["name"], valueInfo["description"]);
@@ -190,11 +190,11 @@ Examples:
                     return 1;
                 }
 
-                receivers.Add(new Eiscp.Core.Eiscp(addresses[0], portNum));
+                receivers.Add(new EiscpClient(addresses[0], portNum));
             }
             else
             {
-                receivers = Eiscp.Core.Eiscp.Discover(timeout: 1);
+                receivers = EiscpClient.Discover(timeout: 1);
 
                 if (!all)
                 {

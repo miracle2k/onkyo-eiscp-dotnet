@@ -62,6 +62,7 @@ class Program
         foreach (DictionaryEntry commandEntry in commandList)
         {
             object name = (commandEntry.Value as IDictionary)["name"];
+            var aliases = ((commandEntry.Value as IDictionary)["aliases"] as object[])?.Cast<string>().ToArray();
             if (name is IEnumerable && !(name is string))
             {
                 foreach (object item in (IEnumerable)name)
@@ -71,10 +72,15 @@ class Program
             }
             else
             {
+
                 yield return new DictionaryEntry(name, commandEntry.Key);
+                if (aliases?.Length > 0) {
+                    foreach (var alias in aliases)
+                        yield return new DictionaryEntry(alias, commandEntry.Key);
+                }
+                }
             }
         }
-    }
 
     private static IEnumerable FindValueAliases(OrderedDictionary values)
     {
@@ -134,7 +140,7 @@ class Program
         }
         else if (data is Array)
         {
-            s.Append("new object[]\n");
+            s.Append("new string[]\n");
             for (int i = 0; i < nesting; i++)
             {
                 s.Append("\t");
@@ -224,13 +230,24 @@ class Program
 
         return odict;
     }
+    public static void Main(string[] args) {
+        if (args.Length == 0)
+            throw new Exception("Must provide atleast an input file and optionally an output file");
+        using var reader = new StreamReader(args[0]);
+        var writeTo = Console.Out;
+        if (args.Length > 1)
+            writeTo = new StreamWriter(args[1]);
 
-    static void Main(string[] args)
+
+        DoWork(reader, writeTo);
+    }
+
+    static void DoWork(StreamReader ReadFrom,TextWriter WriteTo)
     {             
         OrderedDictionary zones;
-
-        using (var sr = new StreamReader(args[0]))
-        {   
+        var sr = ReadFrom;
+        var Console = WriteTo;
+        
             var parser = new Parser(sr);
             var er = new EventReader(parser);
 
@@ -239,7 +256,7 @@ class Program
             zones = (OrderedDictionary)GetData(er);
             er.Expect<DocumentEnd>();
             er.Expect<StreamEnd>();
-        }
+        
 
         // Remove modelsets key, not a real zone
         zones.Remove("modelsets");
@@ -281,6 +298,7 @@ class Program
                 {
                     { "name", commandData["name"] },
                     { "description", commandData["description"] },
+                    { "aliases", commandData["aliases"] },
                     { "values", newValues }
                 };
                 newCommands.Add(command, newCommandData);
@@ -288,11 +306,6 @@ class Program
             commands.Add(zone, newCommands);
         }
 
-        var zoneMappings = new OrderedDictionary()
-        {
-            // use main as default zone
-            { "", "main" }
-        };
 
         var commandMappings = Odict(
             from DictionaryEntry zoneEntry in zones
@@ -323,15 +336,14 @@ class Program
             }
         );
 
-        Console.OutputEncoding = Encoding.UTF8;
-
+        
         Console.Write(
             "// Generated\n" +
             "// by {0}\n" +
             "// from {1}\n" +
             "// at {2}\n\n",
             Path.GetFileName(Environment.GetCommandLineArgs()[0]),
-            Path.GetFileName(args[0]),
+            Path.GetFileName(Environment.GetCommandLineArgs()[1]),
             DateTime.Now                
         );
 
@@ -339,23 +351,19 @@ class Program
             "using System.Collections;\n" +
             "using System.Collections.Specialized;\n\n" +
             "namespace Eiscp.Core\n" +
-            "{{\n" +
+            "{\n" +
             "\tpublic static class EiscpCommands\n" +
-            "\t{{\n" +
-            "\t\tpublic static readonly OrderedDictionary Commands = {0};\n" +
+            "\t{\n" +
+            $"\t\tpublic static readonly OrderedDictionary Commands = {PrintData(false, 2, commands)};\n" +
             "\n" +
-            "\t\tpublic static readonly OrderedDictionary ZoneMappings = {1};\n" +
+            $"\t\tpublic static readonly OrderedDictionary CommandMappings = {PrintData(false, 2, commandMappings)};\n" +
             "\n" +
-            "\t\tpublic static readonly OrderedDictionary CommandMappings = {2};\n" +
-            "\n" +
-            "\t\tpublic static readonly OrderedDictionary ValueMappings = {3};\n" +
-            "\t}}\n" +
-            "}}\n",
-            PrintData(false, 2, commands),
-            PrintData(false, 2, zoneMappings),
-            PrintData(false, 2, commandMappings),
-            PrintData(false, 2, valueMappings)
+            $"\t\tpublic static readonly OrderedDictionary ValueMappings = {PrintData(false, 2, valueMappings)};\n" +
+            "\t}\n" +
+            "}\n"
         );
+        Console.Flush();
     }
 }
+
 

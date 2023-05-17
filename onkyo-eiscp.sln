@@ -1,11 +1,11 @@
-﻿
+
 Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Express 2012 for Windows Desktop
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "onkyo-eiscp", "onkyo-eiscp\onkyo-eiscp.csproj", "{C3767D2D-6EBD-4475-9752-5524C6A34FBD}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "onkyo-eiscp", "onkyo-eiscp\onkyo-eiscp.csproj", "{C3767D2D-6EBD-4475-9752-5524C6A34FBD}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "generate", "generate\generate.csproj", "{930ED904-A029-4C7B-932D-DCEC6C61224D}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "generate", "generate\generate.csproj", "{930ED904-A029-4C7B-932D-DCEC6C61224D}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "onkyo", "onkyo\onkyo.csproj", "{A2C38AC8-3C2B-419F-BDD5-AE55C72CFE11}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "onkyo", "onkyo\onkyo.csproj", "{A2C38AC8-3C2B-419F-BDD5-AE55C72CFE11}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
