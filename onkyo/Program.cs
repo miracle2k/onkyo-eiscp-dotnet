@@ -142,15 +142,15 @@ Examples:
                 }
 
                 // List values
-                object selectedCommand = Utils.Nav(EiscpCommands.CommandMappings, selectedZone, command[1]) ?? command[1];
-                if (Utils.Nav(EiscpCommands.Commands, selectedZone, selectedCommand) == null)
+                var selectedCommand = Utils.Nav<string>(EiscpCommands.CommandMappings, selectedZone, command[1]) ?? command[1];
+                if (Utils.Nav<object>(EiscpCommands.Commands, selectedZone, selectedCommand) == null)
                 {
                     Console.WriteLine("No such command in the selected zone: " + selectedCommand);
                     return 1;
                 }
 
                 Console.WriteLine("Possible values for this command:");
-                IDictionary valuesForCommandDict = (IDictionary)Utils.Nav(EiscpCommands.Commands, selectedZone, selectedCommand, "values");
+                IDictionary valuesForCommandDict = Utils.Nav<IDictionary>(EiscpCommands.Commands, selectedZone, selectedCommand, "values");
                 foreach (IDictionary valueInfo in valuesForCommandDict.Values)
                 {
                     Console.WriteLine("  {0} - {1}", valueInfo["name"], valueInfo["description"]);

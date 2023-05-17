@@ -10,9 +10,22 @@ using System.Text;
 using System.Text.RegularExpressions;
 using System.Threading;
 using System.Collections;
-
-namespace Eiscp.Core
-{
+using System.Collections.Specialized;
+using System.Security.Cryptography.X509Certificates;
+using Eiscp.Core;
+using System.Reflection.Emit;
+using kvp = System.Collections.Generic.KeyValuePair<string, string>;
+namespace Eiscp.Core {
+	public class CmdDetailedResult {
+		public string CommandName;
+		public string CommandDescription;
+		public string ValueName;
+		public string ValueDescription;
+		/// <summary>
+		/// only used for audio or video information
+		/// </summary>
+		public IEnumerable<kvp> ParsedValueNameToValue;
+	}
     /// <summary>
     /// Deals with formatting and parsing data wrapped in an ISCP
     /// containers.
@@ -198,14 +211,35 @@ namespace Eiscp.Core
         /// <param name="dict">Root of a dictionary tree.</param>
         /// <param name="keys">Path to the object in the tree.</param>
         /// <returns>Node pointed by the path. It may be itself a dictionary.</returns>
-        public static object Nav(object dict, params object[] keys)
-        {
-            foreach (object key in keys)
-            {
-                dict = (dict as IDictionary)[key];
+		public static T Nav<T>(IDictionary dict, params string[] keys) {
+			if (!_TryNav<T>(dict, out var res, true, keys))
+				throw new Exception("Probably should ahave already thrown");
+			return res;
+		}
+		public static bool TryNav<T>(IDictionary dict, out T res, params string[] keys) => _TryNav(dict, out res, false, keys);
+		private static bool _TryNav<T>(IDictionary dict, out T res, bool throwOnError, params string[] keys) {
+			object lastItm = null;
+			res = default;
+			foreach (object key in keys) {
+				if (dict == null || dict.Contains(key) == false) {
+					if (throwOnError)
+						throw new Exception($"dict is null or key: {key} does not exist");
+					return false;
+				}
+				lastItm = dict[key];
+				dict = lastItm as IDictionary;
+
+
+			}
+			if (lastItm is T ret)
+				res = ret;
+			else {
+				if (throwOnError)
+					throw new Exception($"item is type: {lastItm?.GetType()} not expected of: {typeof(T)}");
+				return false;
             }
 
-            return dict;
+			return true;
         }
 
         /// <summary>
@@ -253,17 +287,17 @@ namespace Eiscp.Core
         /// </example>
         public static string CommandToIscp(string command, string arguments = null, string zone = null)
         {
+			if (String.IsNullOrWhiteSpace(zone))
+				zone = "main";
             List<string> argumentsList = null;
             string defaultZone = "main";
             char[] commandSep = new char[] { '.', ' ' };
             Func<string, string> norm = s => s.Trim().ToLower();
 
             // If parts are not explicitly given, parse the command
-            if (arguments == null && zone == null)
-            {
+			if (String.IsNullOrWhiteSpace(arguments)) {
                 // Separating command and args with colon allows multiple args
-                if (command.Contains(":") || command.Contains("="))
-                {
+				if (command.Contains(":") || command.Contains("=")) {
                     char[] separators = new char[] { ':', '=' };
                     string[] baseAndArguments = command.Split(separators, 2); // in Python counterpart it's "max 1 split", here - it's "max 2 parts"
                     string commandBase = baseAndArguments[0];
@@ -316,20 +350,19 @@ namespace Eiscp.Core
                         throw new ArgumentException("Need at least command and argument");
                     }
                 }
-            }
-
-            //zone = zone ?? "";
-
+			} else
+				argumentsList = arguments.Split(new[] { " " }, StringSplitOptions.RemoveEmptyEntries).ToList();
+			if (command.Length == 3)//if they gave a direct cmd we tolowered it already
+				command = command.ToUpper();
             // Find the command in our database, resolve to internal eISCP command
-            object group = EiscpCommands.ZoneMappings[zone] ?? zone;
-            if (!EiscpCommands.Commands.Contains(group))
-            {
-                throw new ArgumentException(String.Format("\"{0}\" is not a valid zone", group));
+			if (!EiscpCommands.Commands.Contains(zone)) {
+				throw new ArgumentException(String.Format("\"{0}\" is not a valid zone", zone));
             }
 
-            object prefix = Nav(EiscpCommands.CommandMappings, group, command) ?? command;
-            if (Nav(EiscpCommands.Commands, group, prefix) == null) 
-            {
+			if (!TryNav<string>(EiscpCommands.CommandMappings, out var cmdPrefix, zone, command))
+				cmdPrefix = command;
+			var cmdInfo = Nav<IDictionary>(EiscpCommands.Commands, zone, cmdPrefix);
+			if (cmdInfo == null) {
                 throw new ArgumentException(String.Format("\"{0}\" is not a valid command in zone \"{1}\"", command, zone));
             }
 
@@ -337,40 +370,103 @@ namespace Eiscp.Core
             // need multiple.
             string argument = argumentsList[0];
 
-            object value = Nav(EiscpCommands.ValueMappings, group, prefix, argument) ?? argument;            
-            if (Nav(EiscpCommands.Commands, group, prefix, "values", value) == null)
-            {
+			if (!TryNav<string>(EiscpCommands.ValueMappings, out var sendValue, zone, cmdPrefix, argument)) {
+				var dict = Nav<IDictionary>(EiscpCommands.ValueMappings, zone, cmdPrefix);//right now we are not validating against the dict we prolly should
+				if (Int32.TryParse(argument, out var intVal))
+					sendValue = Convert.ToString(intVal, 16);
+				else
+					sendValue = null;
+			}
+			//var value = Nav<string>(cmdInfo, "values", actualValueName, "name");
+
+			if (sendValue == null) {
                 throw new ArgumentException(String.Format("\"{0}\" is not a valid argument " +
                     "for command \"{1}\" in zone \"{2}\"", argument, command, zone));
             }
 
-            return (string)prefix + (string)value;
+			return (string)cmdPrefix + sendValue;
         }
 
-        public static Tuple<string, string> IscpToCommand(string iscpMessage)
-        {
-            foreach (DictionaryEntry item in EiscpCommands.Commands)
-            {
-                string zone = (string)item.Key;
-                IDictionary zoneCmds = (IDictionary)item.Value;
+		public static Tuple<string, string> IscpToCommand(string iscpMessage) {
+			var res = IscpToCommandDetailed(iscpMessage);
+			return new(res.CommandName, res.ValueName);
+		}
+		public static CmdDetailedResult IscpToCommandDetailed(string iscpMessage) {
+
 
                 // For now, ISCP commands are always three characters, which
                 // makes this easy.
                 string command = iscpMessage.Substring(0, 3);
                 string args = iscpMessage.Substring(3);
-                if (zoneCmds.Contains(command))
-                {                   
-                    if (Nav(zoneCmds, command, "values", args) != null)
-                    {
-                        return new Tuple<string, string>(
-                            (string)Nav(zoneCmds, command, "name"),
-                            (string)Nav(zoneCmds, command, "values", args, "name")
-                        );
+			var arr = new[] { 1, 2, 3 };
+
+			var zone = EiscpCommands.Commands.Cast<DictionaryEntry>().FirstOrDefault(kvp => (kvp.Value as IDictionary).Contains(command)).Key.ToString();
+
+			var cmdInfo = Nav<IDictionary>(EiscpCommands.Commands, zone, command);
+
+			var ret = new CmdDetailedResult();
+			ret.CommandName = Nav<string>(cmdInfo, "name");
+			ret.CommandDescription = Nav<string>(cmdInfo, "description");
+			if (TryNav<IDictionary>(cmdInfo, out var valueInfo, "values", args)) {
+				if (TryNav<string[]>(valueInfo, out var valNameArr, "name")) {
+					ret.ValueName = valNameArr.First();
+				} else
+					ret.ValueName = Nav<string>(valueInfo, "name");
+
+				ret.ValueDescription = Nav<string>(valueInfo, "description");
+			} else {
+				var match = Regex.Match(args, @"^(?<plusMinus>[+-])?(?<num>[0-9a-f]+)$", RegexOptions.IgnoreCase);
+				if (match.Success) {
+					try {
+						
+						if (false && match.Groups["plusMinus"].Success) //acutally seems stil lare in hex: if we have plus minus assume its always base 10 (ie dbs)
+							ret.ValueName = Int32.Parse(match.Groups["num"].Value).ToString();
+						else
+							ret.ValueName = Convert.ToInt16(match.Groups["num"].Value, 16).ToString();
+						if (match.Groups["plusMinus"].Success)
+							ret.ValueName = $"{match.Groups["plusMinus"].Value}{ret.ValueName}";
+					} catch { ret.ValueName = args; }
+				} else {
+					ret.ValueName = args;
+					if (ret.CommandName == "video-information" || ret.CommandName == "audio-information") {
+						var valArr = args.Split(new[] { "," }, StringSplitOptions.None);
+						var valueDict = Nav<IDictionary>(cmdInfo, "values");
+						if (valArr.Length > 4) {
+							var allKeys = valueDict.Keys.Cast<string>().Select(name => new { name, count = name.Count(c => c == ',') }).ToArray();
+							var keyName = allKeys.OrderByDescending(a => a.count).FirstOrDefault(a => a.count <= valArr.Length).name;//it seems length is normally -2 from the actual commas sent but maybe it varies so lets choose the longest one that is not longer than data received
+							var valueData = Nav<IDictionary>(valueDict, keyName);
+							ret.ValueDescription = Nav<string>(valueData, "description");
+							if (ret.CommandName == "audio-information")
+								ret.ValueDescription += "\nk...k: Audio Style";
+							var descArr = ret.ValueDescription.Split(new[] { "\n" }, StringSplitOptions.None).Skip(1).ToArray();
+							var kvpList = new List<kvp>();
+							var maxIndex = Math.Min(valArr.Length, descArr.Length);
+							for (var x = 0; x < maxIndex; x++) {
+								var valKeyName = descArr[x];
+								var colPos = valKeyName.IndexOf(':');
+								if (colPos != -1)
+									valKeyName = valKeyName.Substring(colPos + 1).Trim();
+
+								kvpList.Add(new(valKeyName, valArr[x]));
+							}
+							ret.ParsedValueNameToValue = kvpList;
+
+						}
+					} else if (ret.CommandName == "temperature-data") {
+
+						var tempMatch = Regex.Match(args, @"^F\s*(?<fdeg>[0-9]+)C\s*(?<cdeg>[0-9]+)$");
+						if (tempMatch.Success) {
+							ret.ParsedValueNameToValue = new[] {
+								new kvp("F", tempMatch.Groups["fdeg"].Value),
+								new kvp("C", tempMatch.Groups["cdeg"].Value),
+							};
+						}
                     }
                 }
             }
 
-            throw new ArgumentException("Cannot convert ISCP message to command: " + iscpMessage);
+			return ret;
+
         }
 
         /// <summary>
@@ -404,7 +500,7 @@ namespace Eiscp.Core
                 // reproducably, so use a generous timeout.
                 if (DateTime.Now.Ticks - start > 7000000) // 700ms
                 {
-                    throw new ArgumentException("Not received a response");
+					throw new TimeoutException("Not received a response");
                 }
             }
         }
@@ -630,24 +726,38 @@ namespace Eiscp.Core
             }
 
             Send(iscpMessage);
-            return Utils.FilterForMessage(this.Get, iscpMessage);
+			byte[] res = null;
+			var errMsg = "";
+			try {
+				res = Utils.FilterForMessage(this.Get, iscpMessage);
+			} catch (TimeoutException) {
+				errMsg="Timeout or no response";
         }
 
         /// <summary>
         /// Send a high-level command to the receiver, return the
         /// receiver's response formatted has a command.
+			if (DEBUG)
+				Debug.WriteLine($"Command {iscpMessage} => {Encoding.UTF8.GetString(res ?? new byte[0])} {errMsg}");
         /// </summary>
+			return res;
+		}
+		public static bool DEBUG = true;
         ///
         /// This is basically a helper that combines <see cref="Raw"/>,
         /// <see cref="Utils.CommandToIscp"/> and <see cref="Utils.IscpToCommand"/>.
         public Tuple<string, string> Command(string command, string arguments = null, string zone = null)
         {
+			var res = CommandDetailed(command, arguments, zone);
+			return new(res.CommandName, res.ValueName);
+		}
+		public CmdDetailedResult CommandDetailed(string command, string arguments = null, string zone = null) {
             var iscpMessage = Utils.CommandToIscp(command, arguments, zone);
             var response = Raw(iscpMessage);
             if (response != null)
             {
                 string str = Encoding.ASCII.GetString(response);
-                return Utils.IscpToCommand(str);
+                return Utils.IscpToCommandDetailed(str);
             }
             else
             {
